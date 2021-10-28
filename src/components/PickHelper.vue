@@ -182,12 +182,20 @@
         >
         | games count: {{ mouseOverHero.divine_count }}
       </div>
+      <div class="hero-info__row">
+        roles: {{ mouseOverHero.roles.join(", ") }}
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { getPickWinrate, findBestHeroes, fuzzySearch } from "./../helper";
+import {
+  getPickWinrate,
+  findBestHeroes,
+  fuzzySearch,
+  computeAllHeroes,
+} from "./../helper";
 import Finder from "./Finder";
 import Loading from "./Loading";
 

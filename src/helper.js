@@ -179,3 +179,73 @@ export async function getTeamLastMatches(team_id, count = 15) {
 export function getTeamInfo(team_id) {
     return fetch(getURL.team(team_id)).then(res => res.json());
 }
+
+
+export async function computeNextBestHero(pick, count, heroIds) {
+    const best_heroes = await findBestHeroes(pick, heroIds);
+    return best_heroes.slice(0, count).map(({ id }) => id);
+}
+
+const QUEUE = [
+    // { team: "radiant", phase: "pick", count: 1 },
+    { team: "dire", phase: "pick", count: 2 },
+    { team: "radiant", phase: "pick", count: 1 },
+    { team: "radiant", phase: "ban", count: 3 },
+    { team: "dire", phase: "ban", count: 3 },
+    { team: "dire", phase: "pick", count: 1 },
+    { team: "radiant", phase: "pick", count: 2 },
+    { team: "dire", phase: "pick", count: 1 },
+    { team: "radiant", phase: "ban", count: 2 },
+    { team: "dire", phase: "ban", count: 2 },
+    { team: "radiant", phase: "pick", count: 1 },
+    { team: "dire", phase: "pick", count: 1 },
+];
+
+export async function computeAllHeroes(radiant, dire, ban, heroIds) {
+    const nextHeroesIds = () => {
+        return heroIds.filter((id) => !dire.includes(id) && !radiant.includes(id) && !ban.includes(id));
+    };
+
+    return QUEUE.reduce(
+        (prev, { count, phase, team }) => {
+            const compute_vs = (team === "radiant" && phase === "pick") || (team === "dire" && phase === "ban")
+                ? dire
+                : radiant;
+            return prev.then(() => computeNextBestHero(compute_vs, count, nextHeroesIds()).then(
+                (pick) => {
+                    if (phase === "ban") {
+                        ban.push(...pick);
+                    } else {
+                        if (team === "radiant") {
+                            radiant.push(...pick);
+                        } else {
+                            dire.push(...pick);
+                        }
+                    }
+                }
+            ))
+        },
+        Promise.resolve()
+    ).then(() => [dire, radiant]);
+}
+
+/*
+    // TODO
+    setTimeout(() => {
+      computeAllHeroes(["114"], [], [], Object.keys(this.heroes)).then(
+        ([dire, radiant]) => {
+          console.log(dire, radiant);
+          dire.forEach((id) =>
+            this.heroClick(
+              { which: 3, preventDefault: () => void 0 },
+              this.heroes[id]
+            )
+          );
+          radiant.forEach((id) =>
+            this.heroClick({ which: 1 }, this.heroes[id])
+          );
+        }
+      );
+    }, 500);
+*/
+

@@ -5,9 +5,15 @@
       <div class="header-text">MEDVEBOT</div>
       <div class="live-circle" @click="toggleLive"></div>
       <div class="team-finder" v-if="live">
-        <input type="text" @keyup.enter="getTeamInfo" v-model="team_input_value" />
+        <input
+          type="text"
+          @keyup.enter="getTeamInfo"
+          v-model="team_input_value"
+        />
         <div @click="getTeamInfo" class="mdi mdi-magnify"></div>
-        <div class="team-finder__suggested_team">{{suggested_team && suggested_team.name}}</div>
+        <div class="team-finder__suggested_team">
+          {{ suggested_team && suggested_team.name }}
+        </div>
         <div @click="clear" v-if="team_info" class="mdi mdi-backspace"></div>
         <loading v-if="team_info_in_progress" />
       </div>
@@ -23,8 +29,18 @@
           :intHeroes="intHeroes"
           :forced_match="forced_match"
         />
-        <live v-if="live && !team_info" :heroes="heroes" :teams="teams" :copyMatch="copyMatch" />
-        <teaminfo v-if="live && team_info" :heroes="heroes" :team_info="team_info" single />
+        <live
+          v-if="live && !team_info"
+          :heroes="heroes"
+          :teams="teams"
+          :copyMatch="copyMatch"
+        />
+        <teaminfo
+          v-if="live && team_info"
+          :heroes="heroes"
+          :team_info="team_info"
+          single
+        />
       </div>
     </div>
     <error v-if="error" :message="error"></error>
@@ -46,6 +62,7 @@ import {
   getTeamInfo,
   getTeamLastMatches,
 } from "./helper";
+import heroes_roles from "./heroes_roles";
 
 export default {
   name: "App",
@@ -159,6 +176,7 @@ export default {
             divine_count: hero["8_pick"],
             pro_count: hero.pro_pick,
             pro_wr: hero.pro_win / hero.pro_pick,
+            roles: heroes_roles[hero.id],
           };
           switch (hero.primary_attr) {
             case "agi":
