@@ -187,65 +187,61 @@ export async function computeNextBestHero(pick, count, heroIds) {
 }
 
 const QUEUE = [
-    // { team: "radiant", phase: "pick", count: 1 },
-    { team: "dire", phase: "pick", count: 2 },
-    { team: "radiant", phase: "pick", count: 1 },
-    { team: "radiant", phase: "ban", count: 3 },
-    { team: "dire", phase: "ban", count: 3 },
-    { team: "dire", phase: "pick", count: 1 },
-    { team: "radiant", phase: "pick", count: 2 },
-    { team: "dire", phase: "pick", count: 1 },
-    { team: "radiant", phase: "ban", count: 2 },
-    { team: "dire", phase: "ban", count: 2 },
-    { team: "radiant", phase: "pick", count: 1 },
-    { team: "dire", phase: "pick", count: 1 },
+    [true, false], // начало банов
+    [false, false],
+    [true, false],
+    [false, false], // конец банов
+    [true, true], // начало пиков
+    [false, true],
+    [false, true],
+    [true, true], // конец пиков
+    [true, false], // начало банов
+    [false, false],
+    [true, false],
+    [false, false],
+    [true, false],
+    [false, false], // конец банов
+    [false, true],
+    [true, true],
+    [false, true],
+    [true, true],
+    [false, false],
+    [true, false],
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
 ];
 
-export async function computeAllHeroes(radiant, dire, ban, heroIds) {
-    const nextHeroesIds = () => {
-        return heroIds.filter((id) => !dire.includes(id) && !radiant.includes(id) && !ban.includes(id));
-    };
+export async function* computeAllPicks(radiant, dire, ban, round, heroIds) {
+    const nextHeroesIds = () => heroIds.filter((id) => !dire.includes(id) && !radiant.includes(id) && !ban.includes(id));
 
-    return QUEUE.reduce(
-        (prev, { count, phase, team }) => {
-            const compute_vs = (team === "radiant" && phase === "pick") || (team === "dire" && phase === "ban")
+    while (QUEUE[round]) {
+        const [is_radiant, is_pick] = QUEUE[round];
+        const pick = await computeNextBestHero(
+            (is_radiant && is_pick) || (!is_radiant && !is_pick)
                 ? dire
-                : radiant;
-            return prev.then(() => computeNextBestHero(compute_vs, count, nextHeroesIds()).then(
-                (pick) => {
-                    if (phase === "ban") {
-                        ban.push(...pick);
-                    } else {
-                        if (team === "radiant") {
-                            radiant.push(...pick);
-                        } else {
-                            dire.push(...pick);
-                        }
-                    }
-                }
-            ))
-        },
-        Promise.resolve()
-    ).then(() => [dire, radiant]);
-}
+                : radiant,
+            1,
+            nextHeroesIds()
+        );
 
-/*
-    // TODO
-    setTimeout(() => {
-      computeAllHeroes(["114"], [], [], Object.keys(this.heroes)).then(
-        ([dire, radiant]) => {
-          console.log(dire, radiant);
-          dire.forEach((id) =>
-            this.heroClick(
-              { which: 3, preventDefault: () => void 0 },
-              this.heroes[id]
-            )
-          );
-          radiant.forEach((id) =>
-            this.heroClick({ which: 1 }, this.heroes[id])
-          );
+
+        yield {
+            is_radiant,
+            pick
+        };
+
+        if (!is_pick) {
+            ban.push(...pick);
+        } else {
+            if (is_radiant) {
+                radiant.push(...pick);
+            } else {
+                dire.push(...pick);
+            }
         }
-      );
-    }, 500);
-*/
 
+        round++;
+    }
+}

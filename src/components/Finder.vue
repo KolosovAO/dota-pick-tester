@@ -1,17 +1,17 @@
 <template>
-    <div class="find-helper">{{upperFilter}}</div>
+    <div class="find-helper">{{ upperFilter }}</div>
 </template>
 
 <script>
 export default {
-    name: 'Finder',
+    name: "Finder",
     props: {
-        filter: String
+        filter: String,
     },
     computed: {
         upperFilter() {
             return this.filter.toUpperCase();
-        }
-    }
-}
+        },
+    },
+};
 </script>

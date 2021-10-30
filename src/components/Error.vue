@@ -1,12 +1,12 @@
 <template>
-    <div class="error">{{message}}</div>
+    <div class="error">{{ message }}</div>
 </template>
 
 <script>
 export default {
-    name: 'ErrorMessage',
+    name: "ErrorMessage",
     props: {
-        message: String
-    }
-}
+        message: String,
+    },
+};
 </script>

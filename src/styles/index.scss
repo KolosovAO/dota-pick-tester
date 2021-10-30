@@ -9,6 +9,7 @@
 @import "./components/loading.scss";
 @import "./components/live.scss";
 @import "./components/teaminfo.scss";
+@import "./components/captains_mode.scss";
 
 body {
     font-family: $main-font;
@@ -34,6 +35,14 @@ body {
     }
     &:active {
         border: none;
+    }
+
+    &.disabled {
+        background: $bg3;
+        &:hover {
+            opacity: 1;
+            cursor: wait;
+        }
     }
 }
 
