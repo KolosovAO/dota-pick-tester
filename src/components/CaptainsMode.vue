@@ -14,17 +14,13 @@
                 <div
                     v-for="(item, index) in order"
                     :key="index"
-                    @click="choose(index, true)"
+                    @click="forceChoose(index, true)"
                     :class="{
                         stage_ban: item.stage === 'ban',
                         stage_pick: item.stage === 'pick',
                         active:
-                            choose_hero.index === index &&
-                            choose_hero.is_radiant,
-                        clickable:
-                            index === 0 ||
-                            order[index].radiant ||
-                            order[index - 1].radiant,
+                            active_step[0] === true && active_step[1] === index,
+                        clickable: clickable(index, false),
                     }"
                 >
                     <img
@@ -62,17 +58,14 @@
                 <div
                     v-for="(item, index) in order"
                     :key="index"
-                    @click="choose(index, false)"
+                    @click="forceChoose(index, false)"
                     :class="{
                         stage_ban: item.stage === 'ban',
                         stage_pick: item.stage === 'pick',
                         active:
-                            choose_hero.index === index &&
-                            !choose_hero.is_radiant,
-                        clickable:
-                            index === 0 ||
-                            order[index].dire ||
-                            order[index - 1].dire,
+                            active_step[0] === false &&
+                            active_step[1] === index,
+                        clickable: clickable(index, false),
                     }"
                 >
                     <img
@@ -90,14 +83,17 @@
                 </button>
             </div>
         </div>
-        <div class="heroes__view" :class="{ active: choose_hero.index !== -1 }">
+        <div
+            class="heroes__view"
+            :class="{ active: current_step < 24 && !in_progess }"
+        >
             <div class="heroes-view">
                 <div class="heroes-subview str-heroes">
                     <img
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: disabled[hero.id],
+                            disabled: disabled[hero.id] || in_progess,
                         }"
                         v-for="hero in strHeroes"
                         @click="selectHero(hero)"
@@ -108,7 +104,7 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: disabled[hero.id],
+                            disabled: disabled[hero.id] || in_progess,
                         }"
                         v-for="hero in agiHeroes"
                         @click="selectHero(hero)"
@@ -119,7 +115,7 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: disabled[hero.id],
+                            disabled: disabled[hero.id] || in_progess,
                         }"
                         v-for="hero in intHeroes"
                         @click="selectHero(hero)"
@@ -146,33 +142,33 @@ export default {
         return {
             use_bad: false,
             disabled: {},
-            current_step: 0,
             winrate: undefined,
+            current_step: 0,
             steps: [
-                true, // начало банов
-                false,
-                true,
-                false, // конец банов
-                true, // начало пиков
-                false,
-                false,
-                true, // конец пиков
-                true, // начало банов
-                false,
-                true,
-                false,
-                true,
-                false, // конец банов
-                false,
-                true,
-                false,
-                true,
-                false,
-                true,
-                false,
-                true,
-                false,
-                true,
+                [true, 0], // начало банов
+                [false, 0],
+                [true, 1],
+                [false, 1], // конец банов
+                [true, 2], // начало пиков
+                [false, 2],
+                [false, 3],
+                [true, 3], // конец пиков
+                [true, 4], // начало банов
+                [false, 4],
+                [true, 5],
+                [false, 5],
+                [true, 6],
+                [false, 6], // конец банов
+                [false, 7],
+                [true, 7],
+                [false, 8],
+                [true, 8],
+                [false, 9],
+                [true, 9],
+                [false, 10],
+                [true, 10],
+                [false, 11],
+                [true, 11],
             ],
             order: [
                 { stage: "ban", dire: undefined, radiant: undefined },
@@ -188,40 +184,55 @@ export default {
                 { stage: "ban", dire: undefined, radiant: undefined },
                 { stage: "pick", dire: undefined, radiant: undefined },
             ],
-            choose_hero: {
-                index: 0,
-                is_radiant: true,
-            },
             in_progess: false,
         };
     },
-    methods: {
-        choose(index, is_radiant) {
-            if (index > 0 && !this.order[index - 1][toKey(is_radiant)]) {
-                return;
-            }
-            this.choose_hero.index = index;
-            this.choose_hero.is_radiant = is_radiant;
+    computed: {
+        active_step() {
+            return this.steps[this.current_step] || [];
         },
-        selectHero(hero) {
-            if (this.disabled[hero.id]) {
+    },
+    methods: {
+        clickable(index, is_radiant) {
+            return (
+                this.current_step >=
+                this.steps.findIndex(
+                    (item) => item[0] === is_radiant && item[1] === index
+                )
+            );
+        },
+        forceChoose(index, is_radiant) {
+            if (this.in_progess || !this.clickable(index, is_radiant)) {
                 return;
             }
-            const { index, is_radiant } = this.choose_hero;
+            this.winrate = undefined;
+            this.current_step = this.steps.findIndex(
+                (item) => item[0] === is_radiant && item[1] === index
+            );
+            for (let i = this.current_step; i < this.steps.length; i++) {
+                const [is_radiant, index] = this.steps[i];
+                const step = this.order[index];
+                if (step[toKey(is_radiant)]) {
+                    this.disabled[step[toKey(is_radiant)].id] = false;
+                }
+                step[toKey(is_radiant)] = undefined;
+            }
+        },
+        selectHero(hero, force) {
+            if (
+                this.disabled[hero.id] ||
+                (!force && this.in_progess) ||
+                this.current_step > 23
+            ) {
+                return;
+            }
+            const [is_radiant, index] = this.steps[this.current_step];
             this.disabled[hero.id] = true;
             if (this.order[index][toKey(is_radiant)]) {
                 this.disabled[this.order[index][toKey(is_radiant)].id] = false;
             }
             this.order[index][toKey(is_radiant)] = hero;
-            this.nextStep();
-        },
-        nextStep() {
             this.current_step += 1;
-            const is_radiant_next = this.steps[this.current_step];
-            this.choose_hero.is_radiant = is_radiant_next;
-            this.choose_hero.index = this.order.findIndex(({ radiant, dire }) =>
-                is_radiant_next ? !radiant : !dire
-            );
         },
         async calculate() {
             if (this.in_progess) {
@@ -264,19 +275,8 @@ export default {
                 this.heroes
             );
 
-            let radiant_index = this.order.findIndex((item) => !item.radiant);
-            let dire_index = this.order.findIndex((item) => !item.dire);
-
-            for await (const { is_radiant, id } of generator) {
-                this.disabled[id] = true;
-                if (is_radiant) {
-                    this.order[radiant_index].radiant = this.heroes[id];
-                    radiant_index++;
-                } else {
-                    this.order[dire_index].dire = this.heroes[id];
-                    dire_index++;
-                }
-                this.nextStep();
+            for await (const id of generator) {
+                this.selectHero(this.heroes[id], true);
             }
 
             this.winrate = await getPickWinrate(
@@ -299,8 +299,6 @@ export default {
                 step.radiant = undefined;
             });
             this.current_step = 0;
-            this.choose_hero.index = 0;
-            this.choose_hero.is_radiant = true;
             this.winrate = undefined;
             Object.keys(this.heroes).forEach((id) => {
                 this.disabled[id] = false;

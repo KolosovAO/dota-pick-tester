@@ -279,10 +279,7 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
             return Boolean(bad) === use_bad && canPick(current_heroes.map((id) => heroes[id].roles), heroes[id].roles);
         }).id;
 
-        yield {
-            is_radiant,
-            id,
-        };
+        yield id;
 
         if (is_pick) {
             if (is_radiant) {
