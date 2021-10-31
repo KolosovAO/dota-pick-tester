@@ -2,7 +2,15 @@
     <div class="captains_mode">
         <div class="pick__view">
             <div class="pick">
-                <div class="pick__header">radiant</div>
+                <div
+                    class="pick__header"
+                    :class="{
+                        positive: parseFloat(winrate) >= 50,
+                        empty: !winrate,
+                    }"
+                >
+                    {{ winrate ? winrate : "" }}
+                </div>
                 <div
                     v-for="(item, index) in order"
                     :key="index"
@@ -32,9 +40,25 @@
                 >
                     CALCULATE
                 </button>
+                <div
+                    class="bad-toggler mdi"
+                    :class="{
+                        'mdi-check-circle': use_bad,
+                        'mdi-checkbox-blank-circle': !use_bad,
+                    }"
+                    @click="toggleBad()"
+                ></div>
             </div>
             <div class="pick">
-                <div class="pick__header">dire</div>
+                <div
+                    class="pick__header"
+                    :class="{
+                        positive: parseFloat(winrate) < 50,
+                        empty: !winrate,
+                    }"
+                >
+                    {{ winrate ? 100 - parseFloat(winrate) : "" }}
+                </div>
                 <div
                     v-for="(item, index) in order"
                     :key="index"
@@ -73,7 +97,7 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: hero.$disabled,
+                            disabled: disabled[hero.id],
                         }"
                         v-for="hero in strHeroes"
                         @click="selectHero(hero)"
@@ -84,7 +108,7 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: hero.$disabled,
+                            disabled: disabled[hero.id],
                         }"
                         v-for="hero in agiHeroes"
                         @click="selectHero(hero)"
@@ -95,7 +119,7 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: hero.$disabled,
+                            disabled: disabled[hero.id],
                         }"
                         v-for="hero in intHeroes"
                         @click="selectHero(hero)"
@@ -107,7 +131,7 @@
 </template>
 
 <script>
-import { computeAllPicks } from "../helper";
+import { computeAllPicks, getPickWinrate } from "../helper";
 const toKey = (is_radiant) => (is_radiant ? "radiant" : "dire");
 
 export default {
@@ -120,7 +144,10 @@ export default {
     },
     data() {
         return {
+            use_bad: false,
+            disabled: {},
             current_step: 0,
+            winrate: undefined,
             steps: [
                 true, // начало банов
                 false,
@@ -177,13 +204,13 @@ export default {
             this.choose_hero.is_radiant = is_radiant;
         },
         selectHero(hero) {
-            if (hero.$disabled) {
+            if (this.disabled[hero.id]) {
                 return;
             }
             const { index, is_radiant } = this.choose_hero;
-            hero.$disabled = true;
+            this.disabled[hero.id] = true;
             if (this.order[index][toKey(is_radiant)]) {
-                this.order[index][toKey(is_radiant)].$disabled = false;
+                this.disabled[this.order[index][toKey(is_radiant)].id] = false;
             }
             this.order[index][toKey(is_radiant)] = hero;
             this.nextStep();
@@ -191,12 +218,10 @@ export default {
         nextStep() {
             this.current_step += 1;
             const is_radiant_next = this.steps[this.current_step];
-            this.choose_hero = {
-                is_radiant: is_radiant_next,
-                index: this.order.findIndex(({ radiant, dire }) =>
-                    is_radiant_next ? !radiant : !dire
-                ),
-            };
+            this.choose_hero.is_radiant = is_radiant_next;
+            this.choose_hero.index = this.order.findIndex(({ radiant, dire }) =>
+                is_radiant_next ? !radiant : !dire
+            );
         },
         async calculate() {
             if (this.in_progess) {
@@ -231,30 +256,37 @@ export default {
             this.in_progess = true;
 
             const generator = computeAllPicks(
-                radiant_array,
-                dire_array,
-                bans_array,
+                radiant_array.map(String),
+                dire_array.map(String),
+                bans_array.map(String),
                 this.current_step,
-                Object.keys(this.heroes)
+                this.use_bad,
+                this.heroes
             );
 
             let radiant_index = this.order.findIndex((item) => !item.radiant);
             let dire_index = this.order.findIndex((item) => !item.dire);
 
-            for await (const { is_radiant, pick } of generator) {
-                for (const id of pick) {
-                    if (is_radiant) {
-                        this.heroes[id].$disabled = true;
-                        this.order[radiant_index].radiant = this.heroes[id];
-                        radiant_index++;
-                    } else {
-                        this.heroes[id].$disabled = true;
-                        this.order[dire_index].dire = this.heroes[id];
-                        dire_index++;
-                    }
+            for await (const { is_radiant, id } of generator) {
+                this.disabled[id] = true;
+                if (is_radiant) {
+                    this.order[radiant_index].radiant = this.heroes[id];
+                    radiant_index++;
+                } else {
+                    this.order[dire_index].dire = this.heroes[id];
+                    dire_index++;
                 }
                 this.nextStep();
             }
+
+            this.winrate = await getPickWinrate(
+                this.order
+                    .filter(({ stage }) => stage === "pick")
+                    .map(({ radiant }) => radiant.id),
+                this.order
+                    .filter(({ stage }) => stage === "pick")
+                    .map(({ dire }) => dire.id)
+            );
 
             this.in_progess = false;
         },
@@ -269,9 +301,13 @@ export default {
             this.current_step = 0;
             this.choose_hero.index = 0;
             this.choose_hero.is_radiant = true;
+            this.winrate = undefined;
             Object.keys(this.heroes).forEach((id) => {
-                this.heroes[id].$disabled = false;
+                this.disabled[id] = false;
             });
+        },
+        toggleBad() {
+            this.use_bad = !this.use_bad;
         },
     },
 };

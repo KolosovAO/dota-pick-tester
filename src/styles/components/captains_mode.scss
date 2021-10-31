@@ -3,6 +3,30 @@
     background: $bg5;
     display: flex;
 
+    .pick__header {
+        text-align: center;
+        height: 20px;
+
+        background: $bg-negative;
+
+        &.positive {
+            background: $bg-positive;
+        }
+
+        &.empty {
+            background: initial;
+        }
+    }
+
+    .bad-toggler {
+        width: 40px;
+        height: 40px;
+        font-size: 40px;
+        &:hover {
+            cursor: pointer;
+        }
+    }
+
     .pick__view {
         display: flex;
         width: 320px;
