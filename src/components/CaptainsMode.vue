@@ -1,86 +1,100 @@
 <template>
     <div class="captains_mode">
         <div class="pick__view">
-            <div class="pick">
-                <div
-                    class="pick__header"
-                    :class="{
-                        positive: parseFloat(winrate) >= 50,
-                        empty: !winrate,
-                    }"
-                >
-                    {{ winrate ? winrate : "" }}
+            <div class="picks">
+                <div class="pick">
+                    <div
+                        class="pick__header"
+                        :class="{
+                            positive: parseFloat(winrate) >= 50,
+                            empty: !winrate,
+                        }"
+                    >
+                        {{ winrate ? winrate : "" }}
+                    </div>
+                    <div
+                        v-for="(item, index) in order"
+                        :key="index"
+                        @click="forceChoose(index, true)"
+                        :class="{
+                            stage_ban: item.stage === 'ban',
+                            stage_pick: item.stage === 'pick',
+                            active:
+                                active_step[0] === true &&
+                                active_step[1] === index,
+                            clickable: clickable(index, false),
+                        }"
+                    >
+                        <img
+                            v-if="order[index].radiant"
+                            :src="order[index].radiant.img"
+                        />
+                    </div>
                 </div>
-                <div
-                    v-for="(item, index) in order"
-                    :key="index"
-                    @click="forceChoose(index, true)"
-                    :class="{
-                        stage_ban: item.stage === 'ban',
-                        stage_pick: item.stage === 'pick',
-                        active:
-                            active_step[0] === true && active_step[1] === index,
-                        clickable: clickable(index, false),
-                    }"
-                >
-                    <img
-                        v-if="order[index].radiant"
-                        :src="order[index].radiant.img"
-                    />
+                <div class="pick">
+                    <div
+                        class="pick__header"
+                        :class="{
+                            positive: parseFloat(winrate) < 50,
+                            empty: !winrate,
+                        }"
+                    >
+                        {{ winrate ? 100 - parseFloat(winrate) : "" }}
+                    </div>
+                    <div
+                        v-for="(item, index) in order"
+                        :key="index"
+                        @click="forceChoose(index, false)"
+                        :class="{
+                            stage_ban: item.stage === 'ban',
+                            stage_pick: item.stage === 'pick',
+                            active:
+                                active_step[0] === false &&
+                                active_step[1] === index,
+                            clickable: clickable(index, false),
+                        }"
+                    >
+                        <img
+                            v-if="order[index].dire"
+                            :src="order[index].dire.img"
+                        />
+                    </div>
                 </div>
+            </div>
+            <div class="button-block">
                 <button
                     class="default-btn"
                     @click="calculate()"
                     :disabled="in_progess"
                     :class="{ disabled: in_progess }"
                 >
-                    CALCULATE
+                    ALL
                 </button>
-                <div
-                    class="bad-toggler mdi"
-                    :class="{
-                        'mdi-check-circle': use_bad,
-                        'mdi-checkbox-blank-circle': !use_bad,
-                    }"
-                    @click="toggleBad()"
-                ></div>
-            </div>
-            <div class="pick">
-                <div
-                    class="pick__header"
-                    :class="{
-                        positive: parseFloat(winrate) < 50,
-                        empty: !winrate,
-                    }"
-                >
-                    {{ winrate ? 100 - parseFloat(winrate) : "" }}
-                </div>
-                <div
-                    v-for="(item, index) in order"
-                    :key="index"
-                    @click="forceChoose(index, false)"
-                    :class="{
-                        stage_ban: item.stage === 'ban',
-                        stage_pick: item.stage === 'pick',
-                        active:
-                            active_step[0] === false &&
-                            active_step[1] === index,
-                        clickable: clickable(index, false),
-                    }"
-                >
-                    <img
-                        v-if="order[index].dire"
-                        :src="order[index].dire.img"
-                    />
-                </div>
                 <button
                     class="default-btn"
-                    @click="reset()"
+                    @click="calculate(true)"
                     :disabled="in_progess"
                     :class="{ disabled: in_progess }"
                 >
-                    RESET
+                    NEXT
                 </button>
+                <div class="icon-block">
+                    <div
+                        class="mdi mdi-delete"
+                        @click="reset()"
+                        :disabled="in_progess"
+                        :class="{ disabled: in_progess }"
+                    ></div>
+                    <div
+                        class="mdi"
+                        :class="{
+                            'mdi-check-circle': use_bad,
+                            'mdi-checkbox-blank-circle': !use_bad,
+                            disabled: in_progess,
+                        }"
+                        @click="toggleBad()"
+                    ></div>
+                </div>
             </div>
         </div>
         <div
@@ -192,6 +206,22 @@ export default {
             return this.steps[this.current_step] || [];
         },
     },
+    watch: {
+        async current_step(value) {
+            if (value === 24) {
+                this.in_progess = true;
+                this.winrate = await getPickWinrate(
+                    this.order
+                        .filter(({ stage }) => stage === "pick")
+                        .map(({ radiant }) => radiant.id),
+                    this.order
+                        .filter(({ stage }) => stage === "pick")
+                        .map(({ dire }) => dire.id)
+                );
+                this.in_progess = false;
+            }
+        },
+    },
     methods: {
         clickable(index, is_radiant) {
             return (
@@ -234,7 +264,7 @@ export default {
             this.order[index][toKey(is_radiant)] = hero;
             this.current_step += 1;
         },
-        async calculate() {
+        async calculate(once) {
             if (this.in_progess) {
                 return;
             }
@@ -277,16 +307,10 @@ export default {
 
             for await (const id of generator) {
                 this.selectHero(this.heroes[id], true);
+                if (once) {
+                    break;
+                }
             }
-
-            this.winrate = await getPickWinrate(
-                this.order
-                    .filter(({ stage }) => stage === "pick")
-                    .map(({ radiant }) => radiant.id),
-                this.order
-                    .filter(({ stage }) => stage === "pick")
-                    .map(({ dire }) => dire.id)
-            );
 
             this.in_progess = false;
         },
