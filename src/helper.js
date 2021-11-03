@@ -227,7 +227,7 @@ const combos = ([head, ...tail], prev = [], result) => {
     });
 };
 
-export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroes) {
+export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroes, COUNT = 4) {
     let hero_ids = Object.keys(heroes).filter((id) => !dire.includes(id) && !radiant.includes(id) && !ban.includes(id));
 
     const canPick = (current_roles, next_role) => {
@@ -271,25 +271,34 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
             hero_ids
         );
 
-        const current_heroes = (is_radiant && is_pick) || (!is_radiant && !is_pick)
+        const current_pick = (is_radiant && is_pick) || (!is_radiant && !is_pick)
             ? radiant
             : dire;
 
-        const id = best_heroes.find(({ bad, id }) => {
-            return Boolean(bad) === use_bad && canPick(current_heroes.map((id) => heroes[id].roles), heroes[id].roles);
-        }).id;
+        const ids = [];
+        for (const { id, bad } of best_heroes) {
+            if (Boolean(bad) === use_bad && canPick(current_pick.map((id) => heroes[id].roles), heroes[id].roles)) {
+                ids.push(id);
+            }
+            if (ids.length === COUNT) {
+                break;
+            }
+        }
+        if (!ids.length) {
+            return;
+        }
 
-        yield id;
+        yield ids;
 
         if (is_pick) {
             if (is_radiant) {
-                radiant.push(id);
+                radiant.push(ids[0]);
             } else {
-                dire.push(id);
+                dire.push(ids[0]);
             }
         }
 
-        hero_ids = hero_ids.filter((hero_id) => hero_id !== id);
+        hero_ids = hero_ids.filter((hero_id) => hero_id !== ids[0]);
 
         round++;
     }

@@ -19,10 +19,9 @@
                         :class="{
                             stage_ban: item.stage === 'ban',
                             stage_pick: item.stage === 'pick',
-                            active:
-                                active_step[0] === true &&
-                                active_step[1] === index,
-                            clickable: clickable(index, false),
+                            active: active(index, true),
+                            clickable: clickable(index, true),
+                            changeable: changeable(index, true),
                         }"
                     >
                         <img
@@ -48,10 +47,9 @@
                         :class="{
                             stage_ban: item.stage === 'ban',
                             stage_pick: item.stage === 'pick',
-                            active:
-                                active_step[0] === false &&
-                                active_step[1] === index,
+                            active: active(index, false),
                             clickable: clickable(index, false),
+                            changeable: changeable(index, false),
                         }"
                     >
                         <img
@@ -95,6 +93,14 @@
                         @click="toggleBad()"
                     ></div>
                 </div>
+            </div>
+            <div v-if="other_heroes" class="other_heroes">
+                <img
+                    v-for="id in other_heroes"
+                    :key="id"
+                    :src="heroes[id].img"
+                    @click="changeLastPick(id)"
+                />
             </div>
         </div>
         <div
@@ -208,6 +214,9 @@ export default {
     },
     watch: {
         async current_step(value) {
+            if (!this.in_progess) {
+                this.other_heroes = undefined;
+            }
             if (value === 24) {
                 this.in_progess = true;
                 this.winrate = await getPickWinrate(
@@ -225,10 +234,24 @@ export default {
     methods: {
         clickable(index, is_radiant) {
             return (
-                this.current_step >=
+                this.current_step >
                 this.steps.findIndex(
                     (item) => item[0] === is_radiant && item[1] === index
                 )
+            );
+        },
+        active(index, is_radiant) {
+            return (
+                this.active_step[0] === is_radiant &&
+                this.active_step[1] === index
+            );
+        },
+        changeable(index, is_radiant) {
+            return (
+                this.other_heroes &&
+                this.steps[this.current_step - 1] &&
+                this.steps[this.current_step - 1][0] === is_radiant &&
+                this.steps[this.current_step - 1][1] === index
             );
         },
         forceChoose(index, is_radiant) {
@@ -247,6 +270,14 @@ export default {
                 }
                 step[toKey(is_radiant)] = undefined;
             }
+        },
+        changeLastPick(id) {
+            if (this.in_progess) {
+                return;
+            }
+            this.current_step -= 1;
+            this.other_heroes = undefined;
+            this.selectHero(this.heroes[id]);
         },
         selectHero(hero, force) {
             if (
@@ -294,6 +325,7 @@ export default {
                 return;
             }
 
+            this.other_heroes = undefined;
             this.in_progess = true;
 
             const generator = computeAllPicks(
@@ -302,12 +334,15 @@ export default {
                 bans_array.map(String),
                 this.current_step,
                 this.use_bad,
-                this.heroes
+                this.heroes,
+                once ? 4 : 1
             );
 
-            for await (const id of generator) {
-                this.selectHero(this.heroes[id], true);
+            for await (const ids of generator) {
+                const best_id = ids[0];
+                this.selectHero(this.heroes[best_id], true);
                 if (once) {
+                    this.other_heroes = ids.slice(1);
                     break;
                 }
             }
