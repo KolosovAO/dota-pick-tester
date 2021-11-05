@@ -147,7 +147,7 @@
 </template>
 
 <script>
-import { computeAllPicks, getPickWinrate } from "../helper";
+import { computeAllPicks, getPickWinrate, predictNextBest } from "../helper";
 const toKey = (is_radiant) => (is_radiant ? "radiant" : "dire");
 
 export default {
@@ -321,22 +321,26 @@ export default {
                 }
             }
 
-            if (!dire_array.length && !radiant_array.length) {
-                return;
-            }
-
             this.other_heroes = undefined;
             this.in_progess = true;
 
-            const generator = computeAllPicks(
-                radiant_array.map(String),
-                dire_array.map(String),
-                bans_array.map(String),
-                this.current_step,
-                this.use_bad,
-                this.heroes,
-                once ? 4 : 1
-            );
+            const generator =
+                !dire_array.length && !radiant_array.length
+                    ? predictNextBest(
+                          this.heroes,
+                          bans_array.map(String),
+                          this.use_bad,
+                          once ? 4 : 1
+                      )
+                    : computeAllPicks(
+                          radiant_array.map(String),
+                          dire_array.map(String),
+                          bans_array.map(String),
+                          this.current_step,
+                          this.use_bad,
+                          this.heroes,
+                          once ? 4 : 1
+                      );
 
             for await (const ids of generator) {
                 const best_id = ids[0];

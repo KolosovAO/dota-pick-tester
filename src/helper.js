@@ -1,6 +1,13 @@
 import { getURL } from "./urls";
 import heroes_roles from "./heroes_roles.json";
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+const retry = request => request()
+    .catch(() => delay(5000)
+        .then(() => retry(request))
+    );
+
 const heroesPlaceholder = () => Object.keys(heroes_roles).map((key) => ({
     hero_id: Number(key),
     games_played: 0,
@@ -12,7 +19,7 @@ const getHeroesPlaceholder = (id) => heroesPlaceholder().filter(({ hero_id }) =>
 const MAX_BAD_COUNT = 8;
 
 export async function getMatchups(pick) {
-    const matchupsPromises = pick.map((id) => fetch(getURL.matchups(id))
+    const matchupsPromises = pick.map((id) => retry(() => fetch(getURL.matchups(id)))
         .then(res => res.json())
         .then(data => data.length ? data : getHeroesPlaceholder(id))
     );
@@ -326,4 +333,33 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
 
         round++;
     }
+}
+
+export async function* predictNextBest(heroes, ban, use_bad, count) {
+    const best_heroes = Object.values(heroes)
+        .filter((hero) => !ban.includes(String(hero.id)))
+        .sort((a, b) => b.pro_wr - a.pro_wr)
+        .map(({ id }) => String(id));
+
+    let total = 5 - ban.length;
+    let index = 0;
+
+    while (total) {
+        ban.push(best_heroes[index]);
+        yield best_heroes.slice(index, index + count);
+        index += count;
+        total -= 1;
+
+        await delay(200);
+    }
+
+    yield* computeAllPicks(
+        best_heroes.slice(index, index + 1),
+        [],
+        ban,
+        5,
+        use_bad,
+        heroes,
+        count
+    );
 }
