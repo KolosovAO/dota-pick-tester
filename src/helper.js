@@ -1,9 +1,21 @@
 import { getURL } from "./urls";
+import heroes_roles from "./heroes_roles.json";
+
+const heroesPlaceholder = () => Object.keys(heroes_roles).map((key) => ({
+    hero_id: Number(key),
+    games_played: 0,
+    wins: 0,
+}));
+
+const getHeroesPlaceholder = (id) => heroesPlaceholder().filter(({ hero_id }) => hero_id !== Number(id));
 
 const MAX_BAD_COUNT = 8;
 
 export async function getMatchups(pick) {
-    const matchupsPromises = pick.map(id => fetch(getURL.matchups(id)).then(res => res.json()));
+    const matchupsPromises = pick.map((id) => fetch(getURL.matchups(id))
+        .then(res => res.json())
+        .then(data => data.length ? data : getHeroesPlaceholder(id))
+    );
 
     const matchups = await Promise.all(matchupsPromises);
     return matchups;
@@ -12,9 +24,13 @@ export async function getMatchups(pick) {
 export async function getPickWinrate(team1, team2, pretty = true) {
     const matchups = await getMatchups(team1);
 
-    const vsTeam2Heroes = matchups.map(matchup =>
-        matchup.filter(hero => team2.includes(hero.hero_id))
-    );
+    const vsTeam2Heroes = matchups.map(matchup => {
+        const raw = matchup.filter(hero => team2.includes(hero.hero_id));
+        if (raw.length !== 5) {
+            return team2.map((id) => raw.find(({ hero_id }) => hero_id === Number(id)) || { hero_id: Number(id), games_played: 0, wins: 0 });
+        }
+        return raw;
+    });
 
     let count = 0;
     let badCount = 0;
@@ -270,12 +286,11 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
                 : radiant,
             hero_ids
         );
-
         const current_pick = (is_radiant && is_pick) || (!is_radiant && !is_pick)
             ? radiant
             : dire;
 
-        const ids = [];
+        let ids = [];
         for (const { id, bad } of best_heroes) {
             if (Boolean(bad) === use_bad && canPick(current_pick.map((id) => heroes[id].roles), heroes[id].roles)) {
                 ids.push(id);
@@ -284,8 +299,17 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
                 break;
             }
         }
-        if (!ids.length) {
-            return;
+
+        if (ids.length === 0) {
+            ids = best_heroes
+                .filter(({ bad }) => Boolean(bad) === use_bad)
+                .slice(0, COUNT)
+                .map(({ id }) => id);
+        }
+        if (ids.length === 0) {
+            ids = best_heroes
+                .slice(0, COUNT)
+                .map(({ id }) => id);
         }
 
         yield ids;
