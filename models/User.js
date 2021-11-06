@@ -22,6 +22,11 @@ const USERS = [
         _id: "TEMP_USER_ID2",
         username: "temp_user1",
         password: "temp_user1",
+    },
+    {
+        _id: "TEMP_USER_ASER",
+        username: "aser",
+        password: "aser",
     }
 ]
 
