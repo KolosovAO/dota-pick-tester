@@ -226,14 +226,14 @@ const QUEUE = [
     [false, false], // конец банов
     [false, true],
     [true, true],
-    [false, true],
     [true, true],
-    [false, false],
+    [false, true],
     [true, false],
     [false, false],
     [true, false],
-    [false, true],
+    [false, false],
     [true, true],
+    [false, true],
 ];
 
 const combos = ([head, ...tail], prev = [], result) => {

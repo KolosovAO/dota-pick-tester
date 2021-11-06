@@ -181,14 +181,14 @@ export default {
                 [false, 6], // конец банов
                 [false, 7],
                 [true, 7],
-                [false, 8],
                 [true, 8],
-                [false, 9],
+                [false, 8],
                 [true, 9],
-                [false, 10],
+                [false, 9],
                 [true, 10],
-                [false, 11],
+                [false, 10],
                 [true, 11],
+                [false, 11],
             ],
             order: [
                 { stage: "ban", dire: undefined, radiant: undefined },
