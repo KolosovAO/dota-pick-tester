@@ -1,5 +1,6 @@
 <template>
     <div class="captains_mode">
+        <finder :v-if="hero_filter" :filter="hero_filter"></finder>
         <div class="pick__view">
             <div class="picks">
                 <div class="pick">
@@ -113,7 +114,10 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: disabled[hero.id] || in_progess,
+                            disabled:
+                                disabled[hero.id] ||
+                                filtered[hero.id] ||
+                                in_progess,
                         }"
                         v-for="hero in strHeroes"
                         @click="selectHero(hero)"
@@ -124,7 +128,10 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: disabled[hero.id] || in_progess,
+                            disabled:
+                                disabled[hero.id] ||
+                                filtered[hero.id] ||
+                                in_progess,
                         }"
                         v-for="hero in agiHeroes"
                         @click="selectHero(hero)"
@@ -135,7 +142,10 @@
                         :src="hero.img"
                         :key="hero.id"
                         :class="{
-                            disabled: disabled[hero.id] || in_progess,
+                            disabled:
+                                disabled[hero.id] ||
+                                filtered[hero.id] ||
+                                in_progess,
                         }"
                         v-for="hero in intHeroes"
                         @click="selectHero(hero)"
@@ -147,7 +157,13 @@
 </template>
 
 <script>
-import { computeAllPicks, getPickWinrate, predictNextBest } from "../helper";
+import {
+    computeAllPicks,
+    getPickWinrate,
+    predictNextBest,
+    fuzzySearch,
+} from "../helper";
+import Finder from "./Finder";
 const toKey = (is_radiant) => (is_radiant ? "radiant" : "dire");
 
 export default {
@@ -158,10 +174,58 @@ export default {
         agiHeroes: Object,
         intHeroes: Object,
     },
+    components: {
+        finder: Finder,
+    },
+    beforeMount() {
+        let timeout = null;
+
+        this.keydownListener = (e) => {
+            if (e.shiftKey || e.altKey || e.ctrlKey) {
+                return;
+            }
+            if (e.keyCode >= 65 && e.keyCode <= 90) {
+                this.hero_filter += e.key;
+            }
+            if (e.keyCode === 8 && this.hero_filter.length) {
+                this.hero_filter = this.hero_filter.slice(0, -1);
+            }
+            if (e.keyCode === 27) {
+                this.hero_filter = "";
+            }
+            for (const key in this.heroes) {
+                this.filtered[key] = !fuzzySearch(
+                    this.heroes[key].local.toLowerCase(),
+                    this.hero_filter
+                );
+            }
+
+            if (timeout) {
+                clearTimeout(timeout);
+                timeout = null;
+            }
+            timeout = setTimeout(() => {
+                timeout = null;
+                this.hero_filter = "";
+                for (const key in this.filtered) {
+                    this.filtered[key] = false;
+                }
+            }, 2500);
+        };
+        document.addEventListener("keydown", this.keydownListener);
+    },
+    beforeDestroy() {
+        document.removeEventListener("keydown", this.keydownListener);
+    },
     data() {
         return {
+            hero_filter: "",
             use_bad: false,
             disabled: {},
+            filtered: Object.keys(this.heroes).reduce((res, key) => {
+                res[key] = false;
+                return res;
+            }, {}),
             winrate: undefined,
             current_step: 0,
             steps: [

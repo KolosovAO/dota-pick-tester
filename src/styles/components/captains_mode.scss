@@ -3,6 +3,11 @@
     background: $bg5;
     display: flex;
 
+    .find-helper {
+        left: 30%;
+        top: 30%;
+    }
+
     .other_heroes {
         position: fixed;
         right: 0;
