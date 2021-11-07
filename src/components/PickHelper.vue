@@ -108,6 +108,7 @@
                     </div>
                 </div>
             </div>
+            <div class="swapper mdi mdi-swap-horizontal" @click="swap()" />
             <div class="calc-block picks">
                 <div
                     class="team__top"
@@ -437,6 +438,28 @@ export default {
         clearBestVsEnemy() {
             this.bestVsTeam2 = [];
             this.worstVsTeam2 = [];
+        },
+        swap() {
+            if (this.wait.vsEnemy || this.wait.vsAlly || this.wait.winrate) {
+                return;
+            }
+            for (const id of this.ally) {
+                this.heroes[id].$markedEnemy = true;
+                this.heroes[id].$markedAlly = false;
+            }
+            for (const id of this.enemy) {
+                this.heroes[id].$markedEnemy = false;
+                this.heroes[id].$markedAlly = true;
+            }
+            [this.ally, this.enemy] = [this.enemy, this.ally];
+            [this.bestVsTeam1, this.bestVsTeam2] = [
+                this.bestVsTeam2,
+                this.bestVsTeam1,
+            ];
+            if (this.winrate) {
+                const star = this.winrate.includes("*") ? " *" : "";
+                this.winrate = 100 - parseFloat(this.winrate) + star;
+            }
         },
     },
     computed: {

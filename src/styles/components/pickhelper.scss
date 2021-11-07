@@ -50,6 +50,17 @@
     flex-direction: row;
     background: $bg2;
 
+    .swapper {
+        width: 0px;
+        font-size: 36px;
+        transform: translateX(-36px);
+
+        &:hover {
+            cursor: pointer;
+            opacity: 0.5;
+        }
+    }
+
     .calc-block {
         position: relative;
         margin: 0 36px 0 0;
