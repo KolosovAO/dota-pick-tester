@@ -25,6 +25,9 @@
                             changeable: changeable(index, true),
                         }"
                     >
+                        <div v-if="!order[index].radiant" class="step-number">
+                            {{ toStep(index, true) }}
+                        </div>
                         <img
                             v-if="order[index].radiant"
                             :src="order[index].radiant.img"
@@ -53,6 +56,9 @@
                             changeable: changeable(index, false),
                         }"
                     >
+                        <div v-if="!order[index].dire" class="step-number">
+                            {{ toStep(index, false) }}
+                        </div>
                         <img
                             v-if="order[index].dire"
                             :src="order[index].dire.img"
@@ -302,6 +308,13 @@ export default {
                 this.steps.findIndex(
                     (item) => item[0] === is_radiant && item[1] === index
                 )
+            );
+        },
+        toStep(index, is_radiant) {
+            return (
+                this.steps.findIndex(
+                    (item) => item[0] === is_radiant && item[1] === index
+                ) + 1
             );
         },
         active(index, is_radiant) {
