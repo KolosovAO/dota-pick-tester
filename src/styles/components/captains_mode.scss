@@ -31,6 +31,12 @@
         text-align: center;
         height: 20px;
 
+        .first_pick, .custom_pool {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         background: $bg-negative;
 
         &.positive {
@@ -173,6 +179,65 @@
 
                 &:hover {
                     cursor: initial;
+                }
+            }
+
+            img.pickable {
+                background: red;
+            }
+        }
+
+        &.edit_mode {
+            opacity: 1;
+            background: black;
+        }
+        
+        .edit_hero_roles {
+            padding: 16px;
+            color: #fff;
+
+            .roles {
+                width: 150px;
+                height: 30px;
+                display: flex;
+
+                .role {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    width: 30px;
+                    height: 30px;
+                    outline: 1px solid #fff;
+                    
+                    &:hover {
+                        cursor: pointer;
+                    }
+
+                    &.selected {
+                        background: lightgreen;
+                    }
+                }
+            }
+        }
+
+        .heroes-controls {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            background: $bg5;
+            
+            padding-right: 24px;
+            margin-bottom: 12px;
+
+            .mdi {
+                width: 24px;
+                height: 24px;
+                font-size: 24px;
+                margin-left: 12px;
+
+                &:hover {
+                    cursor: pointer;
+                    opacity: 0.5;
                 }
             }
         }

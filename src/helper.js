@@ -250,10 +250,13 @@ const combos = ([head, ...tail], prev = [], result) => {
     });
 };
 
-export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroes, COUNT = 4) {
+export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroes, getRoles, COUNT = 4) {
     let hero_ids = Object.keys(heroes).filter((id) => !dire.includes(id) && !radiant.includes(id) && !ban.includes(id));
 
     const canPick = (current_roles, next_role) => {
+        if (next_role.length === 0) {
+            return false;
+        }
         if (current_roles.length === 0) {
             return true;
         }
@@ -299,7 +302,7 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
 
         let ids = [];
         for (const { id, bad } of best_heroes) {
-            if (Boolean(bad) === use_bad && canPick(current_pick.map((id) => heroes[id].roles), heroes[id].roles)) {
+            if (Boolean(bad) === use_bad && canPick(current_pick.map((id) => getRoles(id, is_radiant, is_pick)), getRoles(id, is_radiant, is_pick))) {
                 ids.push(id);
             }
             if (ids.length === COUNT) {
@@ -335,7 +338,7 @@ export async function* computeAllPicks(radiant, dire, ban, round, use_bad, heroe
     }
 }
 
-export async function* predictNextBest(heroes, ban, use_bad, count) {
+export async function* predictNextBest(heroes, ban, use_bad, getRoles, count) {
     const best_heroes = Object.values(heroes)
         .filter((hero) => !ban.includes(String(hero.id)))
         .sort((a, b) => b.pro_wr - a.pro_wr)
@@ -345,8 +348,14 @@ export async function* predictNextBest(heroes, ban, use_bad, count) {
     let index = 0;
 
     while (total) {
-        ban.push(best_heroes[index]);
-        yield best_heroes.slice(index, index + count);
+        if (total === 1) {
+            const h = best_heroes.filter((id) => getRoles(id, true, true).length);
+            ban.push(h[index]);
+            yield h.slice(index, index + count);
+        } else {
+            ban.push(best_heroes[index]);
+            yield best_heroes.slice(index, index + count);
+        }
         index += count;
         total -= 1;
 
@@ -360,6 +369,7 @@ export async function* predictNextBest(heroes, ban, use_bad, count) {
         5,
         use_bad,
         heroes,
+        getRoles,
         count
     );
 }

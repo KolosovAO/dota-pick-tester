@@ -12,6 +12,10 @@
                         }"
                     >
                         {{ winrate ? winrate : "" }}
+                        <div class="custom_pool" v-if="current_step === 0">
+                            <label>Custom pool</label>
+                            <input v-model="custom_pool" type="checkbox" />
+                        </div>
                     </div>
                     <div
                         v-for="(item, index) in order"
@@ -43,6 +47,13 @@
                         }"
                     >
                         {{ winrate ? 100 - parseFloat(winrate) : "" }}
+                        <div
+                            class="first_pick"
+                            v-if="current_step === 0 && custom_pool"
+                        >
+                            <label>First pick</label>
+                            <input v-model="first_pick" type="checkbox" />
+                        </div>
                     </div>
                     <div
                         v-for="(item, index) in order"
@@ -71,7 +82,7 @@
                     class="default-btn"
                     @click="calculate()"
                     :disabled="in_progess"
-                    :class="{ disabled: in_progess }"
+                    :class="{ disabled: in_progess || is_edit_mode }"
                 >
                     ALL
                 </button>
@@ -79,7 +90,7 @@
                     class="default-btn"
                     @click="calculate(true)"
                     :disabled="in_progess"
-                    :class="{ disabled: in_progess }"
+                    :class="{ disabled: in_progess || is_edit_mode }"
                 >
                     NEXT
                 </button>
@@ -88,14 +99,14 @@
                         class="mdi mdi-delete"
                         @click="reset()"
                         :disabled="in_progess"
-                        :class="{ disabled: in_progess }"
+                        :class="{ disabled: in_progess || is_edit_mode }"
                     ></div>
                     <div
                         class="mdi"
                         :class="{
                             'mdi-check-circle': use_bad,
                             'mdi-checkbox-blank-circle': !use_bad,
-                            disabled: in_progess,
+                            disabled: in_progess || is_edit_mode,
                         }"
                         @click="toggleBad()"
                     ></div>
@@ -112,8 +123,21 @@
         </div>
         <div
             class="heroes__view"
-            :class="{ active: current_step < 24 && !in_progess }"
+            :class="{
+                active: current_step < 24 && !in_progess,
+                edit_mode: is_edit_mode,
+            }"
         >
+            <div
+                class="heroes-controls"
+                :style="current_step > 0 && { visibility: 'hidden' }"
+            >
+                <div class="mdi mdi-pencil" @click="toggleEditMode()" />
+                <div class="mdi mdi-content-save" @click="saveEditMode()" />
+                <div class="mdi mdi-close-circle" @click="clearEditMode()" />
+                <div class="mdi mdi-download" @click="exportEditMode()" />
+                <div class="mdi mdi-upload" @click="importEditMode()" />
+            </div>
             <div class="heroes-view">
                 <div class="heroes-subview str-heroes">
                     <img
@@ -124,8 +148,11 @@
                                 disabled[hero.id] ||
                                 filtered[hero.id] ||
                                 in_progess,
+                            pickable:
+                                is_edit_mode &&
+                                edit_mode_selected_heroes[hero.id],
                         }"
-                        v-for="hero in strHeroes"
+                        v-for="hero in str"
                         @click="selectHero(hero)"
                     />
                 </div>
@@ -138,8 +165,11 @@
                                 disabled[hero.id] ||
                                 filtered[hero.id] ||
                                 in_progess,
+                            pickable:
+                                is_edit_mode &&
+                                edit_mode_selected_heroes[hero.id],
                         }"
-                        v-for="hero in agiHeroes"
+                        v-for="hero in agi"
                         @click="selectHero(hero)"
                     />
                 </div>
@@ -152,10 +182,81 @@
                                 disabled[hero.id] ||
                                 filtered[hero.id] ||
                                 in_progess,
+                            pickable:
+                                is_edit_mode &&
+                                edit_mode_selected_heroes[hero.id],
                         }"
-                        v-for="hero in intHeroes"
+                        v-for="hero in int"
                         @click="selectHero(hero)"
                     />
+                </div>
+            </div>
+            <div
+                class="edit_hero_roles"
+                v-if="is_edit_mode && edit_mode_selected_hero"
+            >
+                {{ heroes[edit_mode_selected_hero].local }} roles:
+                <div class="roles">
+                    <div
+                        class="role"
+                        @click="updateRole('1')"
+                        :class="{
+                            selected:
+                                edit_mode_selected_heroes[
+                                    edit_mode_selected_hero
+                                ].includes('1'),
+                        }"
+                    >
+                        1
+                    </div>
+                    <div
+                        class="role"
+                        @click="updateRole('2')"
+                        :class="{
+                            selected:
+                                edit_mode_selected_heroes[
+                                    edit_mode_selected_hero
+                                ].includes('2'),
+                        }"
+                    >
+                        2
+                    </div>
+                    <div
+                        class="role"
+                        @click="updateRole('3')"
+                        :class="{
+                            selected:
+                                edit_mode_selected_heroes[
+                                    edit_mode_selected_hero
+                                ].includes('3'),
+                        }"
+                    >
+                        3
+                    </div>
+                    <div
+                        class="role"
+                        @click="updateRole('4')"
+                        :class="{
+                            selected:
+                                edit_mode_selected_heroes[
+                                    edit_mode_selected_hero
+                                ].includes('4'),
+                        }"
+                    >
+                        4
+                    </div>
+                    <div
+                        class="role"
+                        @click="updateRole('5')"
+                        :class="{
+                            selected:
+                                edit_mode_selected_heroes[
+                                    edit_mode_selected_hero
+                                ].includes('5'),
+                        }"
+                    >
+                        5
+                    </div>
                 </div>
             </div>
         </div>
@@ -219,12 +320,31 @@ export default {
             }, 2500);
         };
         document.addEventListener("keydown", this.keydownListener);
+        const edit_mode_selected_heroes =
+            localStorage.getItem("edit_mode_heroes");
+        if (edit_mode_selected_heroes) {
+            const parsed = JSON.parse(edit_mode_selected_heroes);
+            for (const key in parsed) {
+                this.edit_mode_selected_heroes[key] = parsed[key];
+            }
+        }
     },
     beforeDestroy() {
         document.removeEventListener("keydown", this.keydownListener);
     },
     data() {
         return {
+            custom_pool: false,
+            first_pick: false,
+            is_edit_mode: false,
+            edit_mode_selected_heroes: Object.keys(this.heroes).reduce(
+                (res, key) => {
+                    res[key] = undefined;
+                    return res;
+                },
+                {}
+            ),
+            edit_mode_selected_hero: undefined,
             hero_filter: "",
             use_bad: false,
             disabled: {},
@@ -281,6 +401,30 @@ export default {
         active_step() {
             return this.steps[this.current_step] || [];
         },
+        int() {
+            if (this.useCustomPool()) {
+                return this.intHeroes.filter(
+                    (hero) => this.edit_mode_selected_heroes[hero.id]
+                );
+            }
+            return this.intHeroes;
+        },
+        str() {
+            if (this.useCustomPool()) {
+                return this.strHeroes.filter(
+                    (hero) => this.edit_mode_selected_heroes[hero.id]
+                );
+            }
+            return this.strHeroes;
+        },
+        agi() {
+            if (this.useCustomPool()) {
+                return this.agiHeroes.filter(
+                    (hero) => this.edit_mode_selected_heroes[hero.id]
+                );
+            }
+            return this.agiHeroes;
+        },
     },
     watch: {
         async current_step(value) {
@@ -302,6 +446,17 @@ export default {
         },
     },
     methods: {
+        useCustomPool() {
+            if (!this.steps[this.current_step]) {
+                return false;
+            }
+            const [is_first_team, stage] = this.steps[this.current_step];
+            return (
+                this.custom_pool &&
+                this.first_pick === is_first_team &&
+                this.order[stage].stage === "pick"
+            );
+        },
         clickable(index, is_radiant) {
             return (
                 this.current_step >
@@ -332,7 +487,11 @@ export default {
             );
         },
         forceChoose(index, is_radiant) {
-            if (this.in_progess || !this.clickable(index, is_radiant)) {
+            if (
+                this.in_progess ||
+                this.is_edit_mode ||
+                !this.clickable(index, is_radiant)
+            ) {
                 return;
             }
             this.winrate = undefined;
@@ -349,7 +508,7 @@ export default {
             }
         },
         changeLastPick(id) {
-            if (this.in_progess) {
+            if (this.in_progess || this.is_edit_mode) {
                 return;
             }
             this.current_step -= 1;
@@ -357,6 +516,18 @@ export default {
             this.selectHero(this.heroes[id]);
         },
         selectHero(hero, force) {
+            if (this.is_edit_mode) {
+                if (this.edit_mode_selected_heroes[hero.id]) {
+                    this.edit_mode_selected_heroes[hero.id] = undefined;
+                    this.edit_mode_selected_hero = undefined;
+                } else {
+                    this.edit_mode_selected_heroes[hero.id] = [
+                        ...this.heroes[hero.id].roles,
+                    ];
+                    this.edit_mode_selected_hero = hero.id;
+                }
+                return;
+            }
             if (
                 this.disabled[hero.id] ||
                 (!force && this.in_progess) ||
@@ -373,7 +544,7 @@ export default {
             this.current_step += 1;
         },
         async calculate(once) {
-            if (this.in_progess) {
+            if (this.in_progess || this.is_edit_mode) {
                 return;
             }
             const bans_array = [];
@@ -401,12 +572,25 @@ export default {
             this.other_heroes = undefined;
             this.in_progess = true;
 
+            const getRoles = (id, is_first_team, is_pick) => {
+                if (
+                    this.custom_pool &&
+                    is_pick &&
+                    is_first_team === this.first_pick
+                ) {
+                    return this.edit_mode_selected_heroes[id] || [];
+                }
+
+                return this.heroes[id].roles;
+            };
+
             const generator =
                 !dire_array.length && !radiant_array.length
                     ? predictNextBest(
                           this.heroes,
                           bans_array.map(String),
                           this.use_bad,
+                          getRoles,
                           once ? 4 : 1
                       )
                     : computeAllPicks(
@@ -416,6 +600,7 @@ export default {
                           this.current_step,
                           this.use_bad,
                           this.heroes,
+                          getRoles,
                           once ? 4 : 1
                       );
 
@@ -431,7 +616,7 @@ export default {
             this.in_progess = false;
         },
         reset() {
-            if (this.in_progess) {
+            if (this.in_progess || this.is_edit_mode) {
                 return;
             }
             this.order.forEach((step) => {
@@ -446,6 +631,62 @@ export default {
         },
         toggleBad() {
             this.use_bad = !this.use_bad;
+        },
+        toggleEditMode() {
+            this.is_edit_mode = !this.is_edit_mode;
+        },
+        saveEditMode() {
+            localStorage.setItem(
+                "edit_mode_heroes",
+                JSON.stringify(this.edit_mode_selected_heroes)
+            );
+            this.is_edit_mode = false;
+        },
+        clearEditMode() {
+            for (const key in this.edit_mode_selected_heroes) {
+                this.edit_mode_selected_heroes[key] = undefined;
+            }
+            this.is_edit_mode = false;
+        },
+        exportEditMode() {
+            const a = document.createElement("a");
+            const file = new Blob(
+                [JSON.stringify(this.edit_mode_selected_heroes)],
+                { type: "text/plain;charset=utf-8" }
+            );
+            a.href = URL.createObjectURL(file);
+            a.download = "custom_roles.txt";
+            a.click();
+        },
+        importEditMode() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.click();
+            input.onchange = (e) => {
+                const file_reader = new FileReader();
+                file_reader.readAsText(e.target.files[0]);
+                file_reader.onload = () => {
+                    this.edit_mode_selected_heroes = JSON.parse(
+                        file_reader.result
+                    );
+                };
+            };
+        },
+        updateRole(role) {
+            if (
+                this.edit_mode_selected_heroes[
+                    this.edit_mode_selected_hero
+                ].includes(role)
+            ) {
+                this.edit_mode_selected_heroes[this.edit_mode_selected_hero] =
+                    this.edit_mode_selected_heroes[
+                        this.edit_mode_selected_hero
+                    ].filter((r) => r !== role);
+            } else {
+                this.edit_mode_selected_heroes[
+                    this.edit_mode_selected_hero
+                ].push(role);
+            }
         },
     },
 };
