@@ -135,6 +135,7 @@
                 <div class="mdi mdi-pencil" @click="toggleEditMode()" />
                 <div class="mdi mdi-content-save" @click="saveEditMode()" />
                 <div class="mdi mdi-close-circle" @click="clearEditMode()" />
+                <div class="mdi mdi-all-inclusive" @click="allEditMode()" />
                 <div class="mdi mdi-download" @click="exportEditMode()" />
                 <div class="mdi mdi-upload" @click="importEditMode()" />
             </div>
@@ -646,7 +647,13 @@ export default {
             for (const key in this.edit_mode_selected_heroes) {
                 this.edit_mode_selected_heroes[key] = undefined;
             }
-            this.is_edit_mode = false;
+        },
+        allEditMode() {
+            for (const key in this.heroes) {
+                this.edit_mode_selected_heroes[key] = [
+                    ...this.heroes[key].roles,
+                ];
+            }
         },
         exportEditMode() {
             const a = document.createElement("a");
