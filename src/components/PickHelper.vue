@@ -8,6 +8,8 @@
                         :src="hero.icon"
                         :key="hero.id"
                         @contextmenu="heroClick($event, hero)"
+                        @touchstart.prevent
+                        @touchend="heroClick($event, hero)"
                         @click="heroClick($event, hero)"
                         @mouseover="heroOver(hero)"
                         @mouseout="heroOut(hero)"
@@ -24,6 +26,8 @@
                         :src="hero.icon"
                         :key="hero.id"
                         @contextmenu="heroClick($event, hero)"
+                        @touchstart.prevent
+                        @touchend="heroClick($event, hero)"
                         @click="heroClick($event, hero)"
                         @mouseover="heroOver(hero)"
                         @mouseout="heroOut(hero)"
@@ -40,6 +44,8 @@
                         :src="hero.icon"
                         :key="hero.id"
                         @contextmenu="heroClick($event, hero)"
+                        @touchstart.prevent
+                        @touchend="heroClick($event, hero)"
                         @click="heroClick($event, hero)"
                         @mouseover="heroOver(hero)"
                         @mouseout="heroOut(hero)"
@@ -50,6 +56,38 @@
                         }"
                         v-for="hero in intHeroes"
                     />
+                </div>
+            </div>
+            <div v-if="mouseOverHero" class="hero-info">
+                <div class="hero-info__row">
+                    pro games winrate:
+                    <span
+                        :class="{
+                            good_wr: mouseOverHero.pro_wr >= 0.5,
+                            bad_wr: mouseOverHero.pro_wr < 0.5,
+                        }"
+                        >{{
+                            (Number.isNaN(mouseOverHero.pro_wr)
+                                ? 0
+                                : mouseOverHero.pro_wr * 100
+                            ).toFixed(2)
+                        }}%</span
+                    >
+                    | games count: {{ mouseOverHero.pro_count }}
+                </div>
+                <div class="hero-info__row">
+                    divine+ games winrate:
+                    <span
+                        :class="{
+                            good_wr: mouseOverHero.divine_wr >= 0.5,
+                            bad_wr: mouseOverHero.divine_wr < 0.5,
+                        }"
+                        >{{ (mouseOverHero.divine_wr * 100).toFixed(2) }}%</span
+                    >
+                    | games count: {{ mouseOverHero.divine_count }}
+                </div>
+                <div class="hero-info__row">
+                    roles: {{ mouseOverHero.roles.join(", ") }}
                 </div>
             </div>
         </div>
@@ -173,41 +211,9 @@
                     {{ winrate || "" }}
                 </div>
                 <button class="default-btn" @click="getWinrate">
-                    Calculate
+                    <span class="text">Calculate</span>
                     <span class="mdi mdi-calculator"></span>
                 </button>
-            </div>
-        </div>
-        <div v-if="mouseOverHero" class="hero-info">
-            <div class="hero-info__row">
-                pro games winrate:
-                <span
-                    :class="{
-                        good_wr: mouseOverHero.pro_wr >= 0.5,
-                        bad_wr: mouseOverHero.pro_wr < 0.5,
-                    }"
-                    >{{
-                        (Number.isNaN(mouseOverHero.pro_wr)
-                            ? 0
-                            : mouseOverHero.pro_wr * 100
-                        ).toFixed(2)
-                    }}%</span
-                >
-                | games count: {{ mouseOverHero.pro_count }}
-            </div>
-            <div class="hero-info__row">
-                divine+ games winrate:
-                <span
-                    :class="{
-                        good_wr: mouseOverHero.divine_wr >= 0.5,
-                        bad_wr: mouseOverHero.divine_wr < 0.5,
-                    }"
-                    >{{ (mouseOverHero.divine_wr * 100).toFixed(2) }}%</span
-                >
-                | games count: {{ mouseOverHero.divine_count }}
-            </div>
-            <div class="hero-info__row">
-                roles: {{ mouseOverHero.roles.join(", ") }}
             </div>
         </div>
     </div>
@@ -323,6 +329,12 @@ export default {
             this.mouseOverHero = undefined;
         },
         heroClick(e, hero) {
+            if (e.type === "touchend") {
+                const { left, right } = e.target.getBoundingClientRect();
+                const isEnemy = (left + right) / 2 < e.changedTouches[0].pageX;
+                this.balanceArray(hero, isEnemy);
+                return;
+            }
             this.ignore_forced_match = true;
             this.bestVsTeam1 = [];
             this.bestVsTeam2 = [];

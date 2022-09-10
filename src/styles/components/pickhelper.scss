@@ -10,14 +10,15 @@
         .heroes-view {
             display: flex;
             flex-direction: column;
+            gap: 32px;
 
             width: 1060px;
+            padding: 12px 0;
             background: $bg3;
 
             .heroes-subview {
                 display: flex;
                 flex-wrap: wrap;
-                margin: 12px 0 12px 0;
 
                 img {
                     width: 40px;
@@ -25,6 +26,7 @@
                     padding: 4px 4px 4px 4px;
                     transition: all 0.2s ease-in-out;
                 }
+
                 img:hover {
                     cursor: pointer;
                     transform: scale(1.1);
@@ -34,12 +36,44 @@
                 img.ally_selected {
                     background: $bg-positive;
                 }
+
                 img.enemy_selected {
                     background: $bg-negative;
                 }
+
                 img.filtered {
                     opacity: 0.2;
                 }
+            }
+
+            @media only screen and (max-width: 1060px) {
+                width: 100%;
+                padding: 12px;
+            }
+        }
+
+        .hero-info {
+            position: absolute;
+            bottom: -88px;
+            width: 100%;
+            font-size: 24px;
+            background: $primary-color;
+            color: $secondary-color;
+
+            .good_wr {
+                background: $bg-positive;
+            }
+
+            .bad_wr {
+                background: $bg-negative;
+            }
+
+            @media only screen and (max-width: 1896px) {
+                bottom: -192px;
+            }
+
+            @media only screen and (max-width: 1060px) {
+                bottom: -400px;
             }
         }
     }
@@ -48,12 +82,14 @@
 .calculations {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
     background: $bg2;
 
     .swapper {
         width: 0px;
         font-size: 36px;
-        transform: translateX(-36px);
+        margin-right: 32px;
 
         &:hover {
             cursor: pointer;
@@ -63,9 +99,7 @@
 
     .calc-block {
         position: relative;
-        margin: 0 36px 0 0;
         width: 248px;
-        height: 180px;
 
         img {
             padding: 4px 4px 4px 4px;
@@ -91,9 +125,11 @@
             text-align: center;
             font-size: 18px;
         }
+
         .team-winrate.positive {
             background: $bg-positive;
         }
+
         .team-winrate.empty {
             background: transparent;
         }
@@ -103,23 +139,23 @@
             height: 50px;
             display: flex;
             flex-direction: column;
-        
+
             .mdi {
                 display: inline-block;
                 background: $secondary-color;
                 color: $bg1;
-        
+
                 width: 24px;
                 height: 25px;
                 line-height: 25px;
                 font-size: 24px;
                 border: none;
-        
+
                 &.active {
                     background: $bg1;
                     color: $secondary-color;
                 }
-        
+
                 &:hover {
                     cursor: pointer;
 
@@ -144,6 +180,19 @@
             }
         }
     }
+
+    .winrate {
+        @media only screen and (max-width: 1060px) {
+            width: 80px;
+
+            .default-btn {
+                .text {
+                    display: none;
+                }
+            }
+        }
+    }
+
     .find-controller {
         display: flex;
         flex-direction: row;
@@ -160,20 +209,5 @@
         .team__name {
             color: $secondary-color;
         }
-    }
-}
-
-.hero-info {
-    width: 1060px;
-    font-size: 24px;
-    background: $primary-color;
-    color: $secondary-color;
-
-    .good_wr {
-        background: $bg-positive;
-    }
-
-    .bad_wr {
-        background: $bg-negative;
     }
 }
