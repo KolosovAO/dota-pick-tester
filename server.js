@@ -32,6 +32,9 @@ app.use((req, res, next) => {
     if ((req.path === "/" || req.path === "/index.html") && !req.isAuthenticated()) {
         return res.redirect("/login");
     }
+    if (req.path.endsWith(".png")) {
+        res.set("Cache-control", "public, max-age=10000000");
+    }
     return next();
 });
 
