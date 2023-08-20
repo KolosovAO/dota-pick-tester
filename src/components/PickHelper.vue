@@ -16,7 +16,7 @@
                         :class="{
                             ally_selected: hero.$markedAlly,
                             enemy_selected: hero.$markedEnemy,
-                            filtered: !hero.$filtered,
+                            filtered: !hero.$filtered
                         }"
                         v-for="hero in strHeroes"
                     />
@@ -34,7 +34,7 @@
                         :class="{
                             ally_selected: hero.$markedAlly,
                             enemy_selected: hero.$markedEnemy,
-                            filtered: !hero.$filtered,
+                            filtered: !hero.$filtered
                         }"
                         v-for="hero in agiHeroes"
                     />
@@ -52,9 +52,27 @@
                         :class="{
                             ally_selected: hero.$markedAlly,
                             enemy_selected: hero.$markedEnemy,
-                            filtered: !hero.$filtered,
+                            filtered: !hero.$filtered
                         }"
                         v-for="hero in intHeroes"
+                    />
+                </div>
+                <div class="heroes-subview all-heroes">
+                    <img
+                        :src="hero.icon"
+                        :key="hero.id"
+                        @contextmenu="heroClick($event, hero)"
+                        @touchstart.prevent
+                        @touchend="heroClick($event, hero)"
+                        @click="heroClick($event, hero)"
+                        @mouseover="heroOver(hero)"
+                        @mouseout="heroOut(hero)"
+                        :class="{
+                            ally_selected: hero.$markedAlly,
+                            enemy_selected: hero.$markedEnemy,
+                            filtered: !hero.$filtered
+                        }"
+                        v-for="hero in allHeroes"
                     />
                 </div>
             </div>
@@ -64,7 +82,7 @@
                     <span
                         :class="{
                             good_wr: mouseOverHero.pro_wr >= 0.5,
-                            bad_wr: mouseOverHero.pro_wr < 0.5,
+                            bad_wr: mouseOverHero.pro_wr < 0.5
                         }"
                         >{{
                             (Number.isNaN(mouseOverHero.pro_wr)
@@ -80,7 +98,7 @@
                     <span
                         :class="{
                             good_wr: mouseOverHero.divine_wr >= 0.5,
-                            bad_wr: mouseOverHero.divine_wr < 0.5,
+                            bad_wr: mouseOverHero.divine_wr < 0.5
                         }"
                         >{{ (mouseOverHero.divine_wr * 100).toFixed(2) }}%</span
                     >
@@ -97,8 +115,8 @@
                     class="team__top"
                     v-if="
                         !ignore_forced_match &&
-                        forced_match &&
-                        teams[forced_match.team_id_radiant]
+                            forced_match &&
+                            teams[forced_match.team_id_radiant]
                     "
                 >
                     <div class="team__logo">
@@ -152,8 +170,8 @@
                     class="team__top"
                     v-if="
                         !ignore_forced_match &&
-                        forced_match &&
-                        teams[forced_match.team_id_dire]
+                            forced_match &&
+                            teams[forced_match.team_id_dire]
                     "
                 >
                     <div class="team__logo">
@@ -204,7 +222,7 @@
                     class="info-block team-winrate"
                     :class="{
                         positive: parseInt(winrate) >= 50,
-                        empty: !winrate,
+                        empty: !winrate
                     }"
                 >
                     <loading v-if="wait.winrate"></loading>
@@ -228,7 +246,7 @@ export default {
     name: "Pickhelper",
     components: {
         finder: Finder,
-        loading: Loading,
+        loading: Loading
     },
     props: {
         heroes: Object,
@@ -236,7 +254,8 @@ export default {
         agiHeroes: Array,
         strHeroes: Array,
         intHeroes: Array,
-        forced_match: Object,
+        allHeroes: Array,
+        forced_match: Object
     },
     data() {
         return {
@@ -255,9 +274,9 @@ export default {
             wait: {
                 vsEnemy: false,
                 vsAlly: false,
-                winrate: false,
+                winrate: false
             },
-            ignore_forced_match: true,
+            ignore_forced_match: true
         };
     },
     beforeMount() {
@@ -271,7 +290,7 @@ export default {
         }
 
         let timeout = null;
-        this.keydownListener = (e) => {
+        this.keydownListener = e => {
             if (e.shiftKey || e.altKey || e.ctrlKey) {
                 return;
             }
@@ -311,10 +330,10 @@ export default {
         }
         this.ignore_forced_match = false;
         const { radiant_heroes, dire_heroes } = this.forced_match;
-        radiant_heroes.forEach((hero_id) =>
+        radiant_heroes.forEach(hero_id =>
             this.balanceArray(this.heroes[hero_id], false)
         );
-        dire_heroes.forEach((hero_id) =>
+        dire_heroes.forEach(hero_id =>
             this.balanceArray(this.heroes[hero_id], true)
         );
     },
@@ -359,7 +378,7 @@ export default {
                 }
                 this.clearBestVsEnemy();
                 this.wait.vsEnemy = true;
-                findBestHeroes(pick, heroIds).then((data) => {
+                findBestHeroes(pick, heroIds).then(data => {
                     const best = data.slice(0, 15);
                     const worst = data.slice(-15);
                     this.bestVsTeam2 = best;
@@ -373,7 +392,7 @@ export default {
                 }
                 this.clearBestVsAlly();
                 this.wait.vsAlly = true;
-                findBestHeroes(pick, heroIds).then((data) => {
+                findBestHeroes(pick, heroIds).then(data => {
                     const best = data.slice(0, 15);
                     const worst = data.slice(-15);
                     this.bestVsTeam1 = best;
@@ -429,7 +448,7 @@ export default {
         },
         clearEnemy() {
             this.ignore_forced_match = true;
-            this.enemy.forEach((id) => {
+            this.enemy.forEach(id => {
                 this.heroes[id].$markedEnemy = false;
             });
             this.enemy = [];
@@ -437,7 +456,7 @@ export default {
         },
         clearAlly() {
             this.ignore_forced_match = true;
-            this.ally.forEach((id) => {
+            this.ally.forEach(id => {
                 this.heroes[id].$markedAlly = false;
             });
             this.ally = [];
@@ -466,13 +485,13 @@ export default {
             [this.ally, this.enemy] = [this.enemy, this.ally];
             [this.bestVsTeam1, this.bestVsTeam2] = [
                 this.bestVsTeam2,
-                this.bestVsTeam1,
+                this.bestVsTeam1
             ];
             if (this.winrate) {
                 const star = this.winrate.includes("*") ? " *" : "";
                 this.winrate = 100 - parseFloat(this.winrate) + star;
             }
-        },
+        }
     },
     computed: {
         team1Heroes() {
@@ -480,7 +499,7 @@ export default {
         },
         team2Heroes() {
             return this.showBest2 ? this.bestVsTeam2 : this.worstVsTeam2;
-        },
-    },
+        }
+    }
 };
 </script>
